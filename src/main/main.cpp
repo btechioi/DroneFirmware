@@ -11,6 +11,25 @@
 void savePIDs();
 void loadPIDs();
 
+struct TestResult {
+  bool passed;
+  String message;
+  int errorCode; // Unique error code for specific failures
+};
+
+struct RecoveryState {
+  bool active;
+  uint8_t retryCount;
+  uint32_t lastAttempt;
+  int errorCode;
+};
+
+TestResult testIMU_SelfTest();
+TestResult testMotors_SelfTest();
+TestResult testSensorConsistency_SelfTest();
+void attemptRecovery(const TestResult& test);
+void verifyRecovery();
+
 // Global instances
 MPU6050 mpu;
 TinyGPSPlus gps;
@@ -43,11 +62,13 @@ float baseThrottle = 1000;
 // System state
 FlightMode currentFlightMode = FlightMode::MANUAL;
 AutotuneState autotuneState = AutotuneState::IDLE;
+FailSafeState currentFailSafeState = FailSafeState::FAILSAFE_NONE;
 bool motorsArmed = false;
 SensorData sensorData;
 float fusedVelocityX = 0.0;
 float fusedVelocityY = 0.0;
 float currentRollRate, currentPitchRate, currentYawRate;
+unsigned long lastCommandRxTime = 0;
 
 // Autotune variables
 float autotuneKu;
@@ -150,6 +171,29 @@ void initMotors() {
     // TODO: Implement motor initialization
 }
 
+TestResult testIMU_SelfTest() {
+    // TODO: Implement IMU self-test
+    return {true, "IMU OK", 0};
+}
+
+TestResult testMotors_SelfTest() {
+    // TODO: Implement motors self-test
+    return {true, "Motors OK", 0};
+}
+
+TestResult testSensorConsistency_SelfTest() {
+    // TODO: Implement sensor consistency self-test
+    return {true, "Sensors consistent", 0};
+}
+
+void attemptRecovery(const TestResult& test) {
+    // TODO: Implement recovery attempt
+}
+
+void verifyRecovery() {
+    // TODO: Implement recovery verification
+}
+
 void setup() {
     Serial.begin(115200);
     EEPROM.begin(512);
@@ -177,6 +221,11 @@ void setup() {
     delay(1000);
     
     Serial.println("Drone initialized");
+
+    // Run self-tests
+    testIMU_SelfTest();
+    testMotors_SelfTest();
+    testSensorConsistency_SelfTest();
 }
 
 void loop() {
@@ -196,4 +245,8 @@ void loop() {
     
     // Safety checks
     checkFailsafes();
+
+    if (currentFailSafeState != FailSafeState::FAILSAFE_NONE) {
+        motorsArmed = false;
+    }
 }
