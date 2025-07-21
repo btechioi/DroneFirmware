@@ -13,7 +13,7 @@ void updateRadio() {
     if (packetSize) {
         uint8_t buffer[256];
         LoRa.readBytes(buffer, packetSize);
-        processCommand(buffer);
+        processCommand(buffer, packetSize);
     }
 }
 
@@ -23,7 +23,7 @@ void sendTelemetry() {
     LoRa.endPacket();
 }
 
-void processCommand(uint8_t* data) {
+void processCommand(uint8_t* data, int packetSize) {
     // Simple command protocol
     switch(data[0]) {
         case 0x01: // Arm/disarm

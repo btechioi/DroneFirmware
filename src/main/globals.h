@@ -5,20 +5,10 @@
 #include <LoRa.h>
 #include <Adafruit_BMP085.h>
 #include <Adafruit_HMC5883_U.h>
+#include "config/pins.h"
+#include "config/constants.h"
 
-// Pin Definitions
-#define MOTOR_PIN_1 12
-#define MOTOR_PIN_2 13
-#define MOTOR_PIN_3 14
-#define MOTOR_PIN_4 15
-#define LORA_SS 5
-#define LORA_RST 6
-#define LORA_DIO0 7
 
-// System Constants
-constexpr float MIN_THROTTLE = 1000.0f;
-constexpr float MAX_THROTTLE = 2000.0f;
-constexpr uint32_t SIGNAL_LOSS_TIMEOUT_MS = 1000;
 
 // Global Instances
 extern MPU6050 mpu;

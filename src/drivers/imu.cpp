@@ -1,5 +1,6 @@
 #include "imu.h"
 #include <MadgwickAHRS.h>
+#include "drivers/magnetometer.h"
 
 Madgwick filter;
 
@@ -22,9 +23,15 @@ void updateIMU() {
     float accel[3] = {ax/16384.0f, ay/16384.0f, az/16384.0f};
     float gyro[3] = {gx/131.0f, gy/131.0f, gz/131.0f};
     
+    // Get magnetometer data
+    sensors_event_t event;
+    mag.getEvent(&event);
+    float magData[3] = {event.magnetic.x, event.magnetic.y, event.magnetic.z};
+
     // Update filter
     filter.update(gyro[0], gyro[1], gyro[2], 
-                 accel[0], accel[1], accel[2]);
+                 accel[0], accel[1], accel[2],
+                 magData[0], magData[1], magData[2]);
     
     // Update global state
     sensorData.roll = filter.getRoll();
