@@ -18,7 +18,9 @@ extern Adafruit_HMC5883_Unified mag;
 
 // System State
 enum class FlightMode { MANUAL, ALTITUDE_HOLD, POSITION_HOLD, RETURN_HOME, EMERGENCY };
+enum class AutotuneState { IDLE, TUNING_ROLL, TUNING_PITCH, TUNING_YAW, COMPLETE, FAILED };
 extern FlightMode currentFlightMode;
+extern AutotuneState autotuneState;
 extern bool motorsArmed;
 
 // Sensor Data

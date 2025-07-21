@@ -32,5 +32,11 @@ void processCommand(uint8_t* data, int packetSize) {
         case 0x02: // Set flight mode
             currentFlightMode = static_cast<FlightMode>(data[1]);
             break;
+        case 0x03: // Start autotune
+            autotuneState = AutotuneState::TUNING_ROLL;
+            break;
+        case 0x04: // Stop autotune
+            autotuneState = AutotuneState::IDLE;
+            break;
     }
 }
