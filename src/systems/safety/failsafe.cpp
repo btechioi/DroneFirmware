@@ -7,17 +7,23 @@ bool checkSignalLoss() {
 }
 
 bool checkCriticalSensorFailure() {
-    // TODO: Implement critical sensor failure check
-    return false;
+    return imuError;
 }
 
 bool checkBatteryStatus() {
-    // TODO: Implement battery status check
+    if (batteryVoltage < CRITICAL_BATTERY_THRESHOLD) {
+        return true;
+    }
     return false;
 }
 
 bool checkGeoFence() {
     // TODO: Implement geo-fence check
+    return false;
+}
+
+bool checkMotorPerformanceInFlight() {
+    // TODO: Implement motor performance check
     return false;
 }
 
@@ -30,6 +36,8 @@ void checkFailsafes() {
         currentFailSafeState = FailSafeState::FAILSAFE_CRITICAL_BATTERY;
     } else if (checkGeoFence()) {
         currentFailSafeState = FailSafeState::FAILSAFE_GEO_FENCE;
+    } else if (checkMotorPerformanceInFlight()) {
+        currentFailSafeState = FailSafeState::FAILSAFE_MOTOR_FAILURE;
     } else {
         currentFailSafeState = FailSafeState::FAILSAFE_NONE;
     }

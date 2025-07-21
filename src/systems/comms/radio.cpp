@@ -38,5 +38,21 @@ void processCommand(uint8_t* data, int packetSize) {
         case 0x04: // Stop autotune
             autotuneState = AutotuneState::IDLE;
             break;
+        case 0x1A: // Set flight mode
+            currentFlightMode = static_cast<FlightMode>(data[1]);
+            break;
+        case 0x23: // Calibration request
+            calibrateIMU();
+            calibrateMagnetometer();
+            break;
+        case 0x24: // Add waypoint
+            // TODO: Implement add waypoint
+            break;
+        case 0x25: // Clear waypoints
+            numWaypoints = 0;
+            break;
+        case 0x26: // Start waypoint mission
+            currentFlightMode = FlightMode::WAYPOINT_NAV;
+            break;
     }
 }
