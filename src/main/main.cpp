@@ -6,10 +6,12 @@
 #include "systems/sensors/flight_controller.h"
 #include "systems/control/pid.h"
 #include "systems/control/motor_audio.h"
+#include "systems/control/led_status.h"
 #include "systems/comms/spi_control.h"
 
 FlightController fc;
 MotorAudio motorAudio;
+LEDStatus ledStatus;
 
 static volatile bool motorsArmed = false;
 static volatile FlightMode currentFlightMode = FlightMode::MANUAL;
@@ -75,6 +77,7 @@ static inline void processRCInput();
 static inline void checkFailsafes();
 static inline void enterFailsafe(FailSafeState state);
 static inline void returnToRC();
+static inline void updateLEDStatus();
 
 static inline void fastLoop() {
     fc.updateSensors();
@@ -328,6 +331,28 @@ static inline void updateMotorsPWM() {
     }
 }
 
+static inline void updateLEDStatus() {
+    if (failsafeState == FailSafeState::CRITICAL_SENSOR) {
+        ledStatus.setColor(LEDStatus::RED);
+        ledStatus.setState(LEDStatus::SOLID);
+    } else if (failsafeState != FailSafeState::NONE) {
+        ledStatus.setColor(LEDStatus::RED);
+        ledStatus.setState(LEDStatus::BLINK_FAST);
+    } else if (!fc.hasIMU()) {
+        ledStatus.setColor(LEDStatus::RED);
+        ledStatus.setState(LEDStatus::BLINK_SLOW);
+    } else if (motorsArmed) {
+        ledStatus.setColor(LEDStatus::GREEN);
+        ledStatus.setState(LEDStatus::SOLID);
+    } else if (companionConnected) {
+        ledStatus.setColor(LEDStatus::BLUE);
+        ledStatus.setState(LEDStatus::DOUBLE_BLINK);
+    } else {
+        ledStatus.setColor(LEDStatus::GREEN);
+        ledStatus.setState(LEDStatus::BLINK_SLOW);
+    }
+}
+
 static inline void telemetryLoop() {
     spiTelemetry.update();
     
@@ -397,6 +422,7 @@ void setup() {
         pinMode(RC_PINS[i], INPUT);
     }
     
+    ledStatus.begin();
     motorAudio.begin();
     motorAudio.setMotorOutputFunc(audioMotorCallback);
     motorAudio.playTone(MotorAudio::Tone::READY);
@@ -480,6 +506,8 @@ void loop() {
     }
     
     motorAudio.update();
+    ledStatus.update();
+    updateLEDStatus();
     
     if (Serial.available()) {
         char cmd = Serial.read();

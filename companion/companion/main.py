@@ -18,6 +18,85 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+class LEDStatus:
+    LED_PATH = "/sys/class/leds/led0"
+
+    def __init__(self) -> None:
+        self._gpio_available = False
+        self._last_update = 0
+        self._state = "off"
+        self._spi_connected = False
+        self._armed = False
+
+        try:
+            with open(f"{self.LED_PATH}/trigger", "w") as f:
+                f.write("none")
+            self._gpio_available = True
+            logger.info("LED status initialized")
+        except Exception:
+            logger.debug("LED not available on this system")
+
+    def update(self, spi_connected: bool, armed: bool, mode: str = "") -> None:
+        if not self._gpio_available:
+            return
+
+        now = time.time()
+        if now - self._last_update < 0.5:
+            return
+        self._last_update = now
+
+        self._spi_connected = spi_connected
+        self._armed = armed
+
+        if armed:
+            state = "1"
+        elif spi_connected:
+            state = "0.1"
+        else:
+            state = "0.5"
+
+        if state != self._state:
+            self._state = state
+            try:
+                with open(f"{self.LED_PATH}/brightness", "w") as f:
+                    f.write(state)
+            except Exception:
+                pass
+
+    def set_pattern(self, pattern: str) -> None:
+        if not self._gpio_available:
+            return
+        if pattern != self._state:
+            self._state = pattern
+            try:
+                with open(f"{self.LED_PATH}/brightness", "w") as f:
+                    f.write(pattern)
+            except Exception:
+                pass
+
+    def blink(self, times: int = 2) -> None:
+        if not self._gpio_available:
+            return
+        try:
+            for _ in range(times):
+                with open(f"{self.LED_PATH}/brightness", "w") as f:
+                    f.write("1")
+                time.sleep(0.1)
+                with open(f"{self.LED_PATH}/brightness", "w") as f:
+                    f.write("0")
+                time.sleep(0.1)
+        except Exception:
+            pass
+
+    def cleanup(self) -> None:
+        if self._gpio_available:
+            try:
+                with open(f"{self.LED_PATH}/trigger", "w") as f:
+                    f.write("mmc0")
+            except Exception:
+                pass
+
+
 class FlightMode(Enum):
     STABILIZE = 0
     ALTHOLD = 1
@@ -218,6 +297,7 @@ class CompanionComputer:
         self._spi = None
         self._autopilot = Autopilot()
         self._optical_flow = None
+        self._led = LEDStatus()
 
         self._flow_x = 0.0
         self._flow_y = 0.0
@@ -317,6 +397,8 @@ class CompanionComputer:
                 out_rc = RCChannels(roll, pitch, throttle, yaw, self._rc.aux1)
                 self._spi.send_rc_channels(out_rc)
 
+            self._led.update(bool(self._spi), self._armed)
+
             elapsed = time.time() - start
             if elapsed < loop_time:
                 time.sleep(loop_time - elapsed)
@@ -365,6 +447,7 @@ class CompanionComputer:
             self._serial.close()
         if self._spi:
             self._spi.close()
+        self._led.cleanup()
 
 
 def main() -> None:
