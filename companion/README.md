@@ -7,7 +7,14 @@
   <img src="https://img.shields.io/badge/SPI-125MHz-00979D?style=for-the-badge" alt="SPI">
 </p>
 
-Optional companion computer that runs on Raspberry Pi Zero 2W. Handles autopilot, waypoints, and optical flow position estimation.
+Optional companion computer for Raspberry Pi Zero 2W. Handles autopilot and position estimation.
+
+## Run
+
+```bash
+cd companion && uv sync
+uv run python -m companion.main --mode 2
+```
 
 ## Flight Modes
 
@@ -21,30 +28,20 @@ Optional companion computer that runs on Raspberry Pi Zero 2W. Handles autopilot
 | TAKEOFF | Auto takeoff |
 | LAND | Auto landing |
 
-## Run
-
-```bash
-cd companion
-uv sync
-uv run python -m companion.main --mode 2
-```
-
-## Data Flow
-
-```
-ESP32/RC ──Serial──► Pi Zero ──SPI──► Pico FC
-                                     │
-                                     ▼
-                            IMU → PID → Motors
-```
-
-The Pi Zero receives RC and telemetry, can override control, and sends position commands back to the FC via SPI.
-
 ## Options
 
 | Flag | Description |
 |------|-------------|
-| `--mode N` | Flight mode (0-6) |
+| `--mode N` | Flight mode |
 | `--waypoints lat,lng,alt...` | Mission waypoints |
-| `--enable-optical-flow` | Use PMW3901 sensor |
-| `--log FILE` | Log to file |
+| `--enable-optical-flow` | PMW3901 sensor |
+| `--spi-bus 0` | SPI bus number |
+| `--spi-device 0` | SPI device |
+
+## LED
+
+| State | Meaning |
+|-------|---------|
+| Solid | Armed |
+| Brief blink | SPI connected |
+| Off | Idle |

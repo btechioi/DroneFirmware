@@ -12,8 +12,7 @@ Desktop ground control station for flying and tuning the drone.
 ## Install
 
 ```bash
-cd DroneGCS
-uv sync
+cd DroneGCS && uv sync
 ```
 
 ## Run
@@ -32,7 +31,7 @@ uv run python -m drone_gcs
 | R | Arm |
 | Esc | Disarm |
 
-Gamepad supported if you prefer.
+Gamepad supported.
 
 ## Connect
 
@@ -42,22 +41,11 @@ Gamepad supported if you prefer.
 | UDP | Network to drone IP |
 | Relay | Through RC module |
 
-The app auto-detects "DroneFlightController" USB devices.
+Auto-detects "DroneFlightController" USB devices.
 
-## PID Tuning
+## Features
 
-Built-in auto-tuner supports:
-- Ziegler-Nichols
-- Relay feedback (Åström-Hägglund)
-- Step response
-- Frequency sweep
-
-Four profile slots to save different tuning sets.
-
-## Tabs
-
-- **Flight** - Basic arm/disarm, mode select
-- **PID** - Auto-tune, manual adjustment
-- **Motor** - Test individual motors
-- **Sensors** - View IMU/baro data
-- **Messages** - Mavlink traffic log
+- Real-time PID tuning graphs
+- Motor test tab
+- Sensor data display
+- Mavlink message log

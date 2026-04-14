@@ -9,21 +9,37 @@
 
 Wireless RC module for drones. Handles the link between your transmitter and the flight controller.
 
+## Build
+
+```bash
+pio run -d esp32-rc -e esp32c3-rc    # Receiver
+pio run -d esp32-rc -e esp32c3-tx    # Transmitter
+```
+
+## Flash
+
+```bash
+esptool.py --chip esp32c3 --port /dev/ttyUSB0 write_flash 0x0 firmware/rc_receiver_esp32c3.bin
+```
+
 ## Modes
 
-**RECEIVER** (default) - sits on the drone
-- Listens for ESP-NOW transmissions
-- Outputs SBUS, CRSF, or serial to FC
-- Sends telemetry back to transmitter
+| Mode | Description |
+|------|-------------|
+| RECEIVER | Picks up ESP-NOW, outputs SBUS/CRSF/Serial to FC |
+| TRANSMITTER | Takes input from PC, broadcasts ESP-NOW |
+| BRIDGE | Direct PC ↔ FC passthrough |
 
-**TRANSMITTER** - handheld controller
-- Takes RC input from PC via USB
-- Broadcasts over ESP-NOW
+## LED Patterns
 
-**BRIDGE** - direct passthrough
-- Passes PC ↔ FC without wireless
+| State | LED |
+|-------|-----|
+| Slow blink | Searching for peer |
+| Fast blink | Pairing |
+| Double blink | RC connected |
+| Solid | Fully connected |
 
-## Wiring
+## Pinout
 
 ### ESP32-C3
 
@@ -38,38 +54,13 @@ Wireless RC module for drones. Handles the link between your transmitter and the
 
 | GPIO | Function |
 |------|----------|
-| 17 | UART TX to FC |
-| 18 | UART RX from FC |
+| 17 | UART TX |
+| 18 | UART RX |
 | 48 | Status LED |
-
-## Build
-
-```bash
-# Receiver
-pio run -d esp32-rc -e esp32c3-rc
-
-# Transmitter  
-pio run -d esp32-rc -e esp32c3-tx
-```
-
-## Flash
-
-```bash
-esptool.py --chip esp32c3 --port /dev/ttyUSB0 write_flash 0x0 firmware/rc_receiver_esp32c3.bin
-```
 
 ## Auto-Pairing
 
-The module scans for any ESP-NOW broadcaster on startup. No MAC address or channel configuration needed. Once paired, it reconnects automatically if the link drops.
-
-## Status LED
-
-| State | LED |
-|-------|-----|
-| Off | No peer found |
-| Slow blink | Searching |
-| Fast blink | Pairing |
-| Solid | Connected |
+The module scans for any ESP-NOW broadcaster on startup. No MAC addresses or channels to configure.
 
 ## Memory
 

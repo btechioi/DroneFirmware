@@ -14,112 +14,133 @@
   </a>
 </p>
 
-A drone flight controller that runs on Raspberry Pi Pico, with ESP-NOW RC, companion computer support, and a desktop ground station.
+A drone flight controller built on Raspberry Pi Pico that flies standalone. No companion computer needed.
 
 ## Hardware
 
-- **FC**: Raspberry Pi Pico + MPU6050 IMU
-- **RC**: ESP32-C3 or ESP32-S3 (auto-pairing via ESP-NOW)
-- **Optional**: GPS, barometer, optical flow
-- **Companion**: Raspberry Pi Zero 2W
+| Part | Model | Notes |
+|------|-------|-------|
+| FC | Raspberry Pi Pico | 133MHz, 264KB RAM |
+| IMU | MPU6050 | Required |
+| RC | ESP32-C3 or ESP32-S3 | Auto-pairing |
+| GPS | u-blox NEO-M8N | Optional |
+| Barometer | BMP280 | Optional |
+| Companion | Pi Zero 2W | Optional |
 
-## Build
+## Quick Start
 
 ```bash
+git clone https://github.com/btechioi/DroneFirmware.git
+cd DroneFirmware
 ./build.sh
 ```
 
-This creates `firmware/` with:
-- `firmware.uf2` - Flash to Pico
-- `rc_receiver_esp32c3.bin` - ESP32-C3 receiver
-- `rc_receiver_esp32s3.bin` - ESP32-S3 receiver
-- `rc_transmitter_esp32c3.bin` - ESP32-C3 transmitter
-- `rc_transmitter_esp32s3.bin` - ESP32-S3 transmitter
-
 ## Flash
 
-**Pico**: Copy `firmware.uf2` to the Pico USB drive (hold BOOTSEL to mount)
+**Pico**: Hold BOOTSEL, plug in USB, copy `firmware.uf2` to the drive.
 
 **ESP32**:
 ```bash
 esptool.py --chip esp32c3 --port /dev/ttyUSB0 write_flash 0x0 firmware/rc_receiver_esp32c3.bin
 ```
 
-## How It Works
+## System Overview
 
 ```
-                    ┌─────────────┐
-                    │   GCS/PC    │
-                    │  (PyQt6)    │
-                    └──────┬──────┘
-                           │ USB
-                    ┌──────┴──────┐
-                    │             │
-              ┌─────┴─────┐ ┌─────┴─────┐
-              │ Transmitter│ │  Receiver │
-              │ (optional) │ │           │
-              └─────┬─────┘ └─────┬─────┘
-                    │ ESP-NOW    │
-                    └─────┬───────┘
-                          │ Serial
-                    ┌─────┴─────┐
-                    │   Pico FC   │
-                    └─────┬─────┘
-                          │ SPI
-                    ┌─────┴─────┐
-                    │ Pi Zero 2W │
-                    │ (optional) │
-                    └───────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                        YOUR DRONE                            │
+│                                                              │
+│    ┌─────────────┐      ┌─────────────────────────────┐     │
+│    │   ESP32     │      │       Raspberry Pi Pico     │     │
+│    │   RC RX     │──────│  FC + IMU + Motors        │     │
+│    └──────┬──────┘      └─────────────────────────────┘     │
+│           │                       │                           │
+│      ESP-NOW              SPI (optional)                      │
+│           │                       │                           │
+└───────────┼───────────────────────┼───────────────────────────┘
+            │                       │
+    ┌───────┴───────┐       ┌──────┴──────┐
+    │   TRANSMITTER  │       │  Pi Zero 2W  │
+    │  (handheld/PC)│       │  (optional)  │
+    └───────────────┘       └─────────────┘
 ```
 
-The Pico flies standalone. The ESP32 RC module receives control signals via ESP-NOW and sends them to the FC over serial. The Pi Zero can take over control via SPI.
+**Minimum setup**: Pico + MPU6050 + ESP32-C3 RC receiver
 
-## Features
+## LED Status
 
-| Feature | Notes |
-|---------|-------|
-| 400Hz control loop | Fast response |
-| Auto-tuning PIDs | Relay, Ziegler-Nichols, etc |
-| Hot-plug sensors | GPS/baro auto-detected |
-| Motor audio cues | Beeps for status/failsafe |
-| Triple-redundant RC | Direct, ESP-NOW, companion |
+| LED | State | Meaning |
+|-----|-------|---------|
+| Green solid | Armed | Ready to fly |
+| Green slow blink | Disarmed | Waiting |
+| Blue double blink | Companion | SPI connected |
+| Red fast blink | Failsafe | Error occurred |
 
-## RC System
+## Audio Cues
 
-The RC module runs in one of three modes:
+| Sound | When |
+|-------|------|
+| 1 beep | System ready |
+| 2 ascending beeps | Armed |
+| 2 descending beeps | Disarmed |
+| Descending tone | RC signal lost |
+| Ascending tone | RC paired |
+| All-motor siren | Find drone mode |
 
-| Mode | Description |
-|------|-------------|
-| RECEIVER | Picks up ESP-NOW, outputs SBUS/CRSF/Serial |
-| TRANSMITTER | Takes input from PC USB, broadcasts ESP-NOW |
-| BRIDGE | Passes PC ↔ FC directly |
+## RC Modes
 
-Auto-pairs with any ESP-NOW peer on startup.
+The ESP32 RC module has three modes:
 
-## Audio
+- **RECEIVER** (default): On the drone, receives ESP-NOW, outputs SBUS/CRSF/Serial to FC
+- **TRANSMITTER**: Handheld unit, takes input from PC, broadcasts ESP-NOW
+- **BRIDGE**: Direct PC ↔ FC passthrough without wireless
 
-The motors act as buzzers for audio feedback:
+Auto-pairs with any ESP-NOW peer. No MAC addresses or channels to configure.
 
-- Short beep on arm/disarm
-- Rising tone when paired
-- Descending tone when signal lost
-- All-motors siren when you need to find the drone
+## Serial Commands
 
-## GCS
+Connect to Pico via USB serial at 115200 baud:
 
-Python PyQt6 app for ground control:
+| Key | Action |
+|-----|--------|
+| `a` | Arm |
+| `d` | Disarm |
+| `s` | Status |
+| `f` | Failsafe state |
+| `r` | Return to RC |
+| `p` | Find drone siren |
 
-```bash
-cd DroneGCS && uv sync && uv run python -m drone_gcs
+## Failsafe
+
+If RC signal is lost for 500ms, the drone:
+1. Maintains altitude at throttle ~1200
+2. Waits for RC reconnection
+3. Returns to RC control automatically
+
+## Firmware Files
+
+```
+firmware/
+├── firmware.uf2                  Pico FC (copy to USB drive)
+├── rc_receiver_esp32c3.bin     ESP32-C3 RC
+├── rc_receiver_esp32s3.bin     ESP32-S3 RC
+├── rc_transmitter_esp32c3.bin  ESP32-C3 TX
+└── rc_transmitter_esp32s3.bin  ESP32-S3 TX
 ```
 
-Features joystick support, keyboard fallback (WASD + QE), real-time PID graphs.
+## Performance
+
+| Loop | Rate |
+|------|------|
+| Motor control | 400 Hz |
+| Attitude | 200 Hz |
+| Position | 50 Hz |
 
 ## Safety
 
-- Remove props before testing firmware
-- Verify RC link before arming
-- Failsafe kicks in after 500ms without signal
+- Remove props before firmware updates
+- Check RC link before arming
+- Test failsafe in a safe area
 
 ## License
 
