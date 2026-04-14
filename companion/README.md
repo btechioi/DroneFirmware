@@ -1,60 +1,142 @@
 # Drone Companion Computer
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Platform-Pi%20Zero%202W-blue" alt="Platform">
-  <img src="https://img.shields.io/badge/Link-SPI%20125MHz-green" alt="Link">
-  <img src="https://img.shields.io/badge/Python-3.12+-blueviolet?style=flat&logo=python" alt="Python">
+  <img src="https://img.shields.io/badge/Platform-Pi%20Zero%202W-CC0000?style=for-the-badge&logo=raspberrypi" alt="Platform">
+  <img src="https://img.shields.io/badge/Link-SPI%20125MHz-00979D?style=for-the-badge" alt="Link">
+  <img src="https://img.shields.io/badge/Python-3.12+-blueviolet?style=for-the-badge&logo=python" alt="Python">
 </p>
 
-Position estimation & autopilot for Raspberry Pi Zero 2W connected to Flight Controller via SPI.
+---
 
-## Flight Modes
+## 🎯 Features
 
-| Mode | Description |
-|------|-------------|
-| 0 | STABILIZE - Self-leveling |
-| 1 | ALTHOLD - Altitude hold |
-| 2 | POSHOLD - Position hold |
-| 3 | WAYPOINT - Waypoint navigation |
-| 4 | RTL - Return to launch |
-| 5 | TAKEOFF - Autonomous takeoff |
-| 6 | LAND - Autonomous landing |
+| ✨ Feature | 📝 Description |
+|------------|----------------|
+| 🚀 **SPI Link** | 125 MHz to flight controller |
+| 🧭 **Autopilot** | Position hold, waypoints, RTL |
+| 👁️ **Vision** | Optical flow position estimation |
+| 📡 **RC Relay** | Passes RC through to FC |
 
-## Usage
+---
+
+## ✈️ Flight Modes
+
+```
+┌─────────────────────────────────────────────────────┐
+│              FLIGHT MODE SELECTOR                    │
+├─────┬──────────────────┬─────────────────────────────┤
+│  0  │  STABILIZE      │  🌀 Self-leveling          │
+├─────┼──────────────────┼─────────────────────────────┤
+│  1  │  ALTHOLD        │  📏 Altitude hold           │
+├─────┼──────────────────┼─────────────────────────────┤
+│  2  │  POSHOLD        │  📍 Position hold           │
+├─────┼──────────────────┼─────────────────────────────┤
+│  3  │  WAYPOINT       │  🗺️  Waypoint navigation     │
+├─────┼──────────────────┼─────────────────────────────┤
+│  4  │  RTL            │  🏠  Return to launch       │
+├─────┼──────────────────┼─────────────────────────────┤
+│  5  │  TAKEOFF        │  🚀  Autonomous takeoff      │
+├─────┼──────────────────┼─────────────────────────────┤
+│  6  │  LAND           │  🛬  Autonomous landing      │
+└─────┴──────────────────┴─────────────────────────────┘
+```
+
+---
+
+## 📡 Data Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        DATA FLOW DIAGRAM                        │
+└─────────────────────────────────────────────────────────────────┘
+
+   ESP32/RC ◄──────────── Serial ─────────────► Companion ◄──┐
+   (Radio)                                            │          │
+                                                     │ SPI      │
+                                                     ▼          │
+                                              ┌───────────┐    │
+                                              │   Pico    │    │
+                                              │    FC     │    │
+                                              └─────┬─────┘    │
+                                                    │           │
+                         ┌──────────────────────────┼───────────┘
+                         │                          │
+                         ▼                          ▼
+                  ┌──────────────┐           ┌──────────────┐
+                  │  IMU → PID  │           │  Telemetry   │
+                  │  → Motors   │           │  ← Feedback  │
+                  └──────────────┘           └──────────────┘
+```
+
+---
+
+## 🚀 Usage
 
 ```bash
-# Altitude hold
-python3 -m companion.main --mode 1
-
-# Waypoint mission  
-python3 -m companion.main --mode 3 --waypoints 0,0,2 5,0,2 5,5,2
-
-# Position hold with optical flow
-python3 -m companion.main --mode 2 --enable-optical-flow
-```
-
-## Data Flow
-
-```
-ESP32/RC  ──── Serial ────►  Pi Zero  ──── SPI ────►  Pico
-Radio                                  │                │
-(NRF24/LoRa)                           │                ▼
-                                        │          IMU → PID → Motors
-                                        │                ▲
-                                        └──────── Telemetry
-```
-
-## Setup
-
-```bash
+# Setup
 cd companion
 uv sync
-uv run python -m companion
+
+# Altitude hold mode
+uv run python -m companion.main --mode 1
+
+# Waypoint mission
+uv run python -m companion.main --mode 3 \
+    --waypoints 0,0,2 5,0,2 5,5,2
+
+# Position hold with optical flow
+uv run python -m companion.main --mode 2 \
+    --enable-optical-flow
 ```
 
-## Features
+---
 
-- **SPI Link** - 125 MHz to flight controller
-- **Autopilot** - Position hold, waypoints, RTL
-- **Optical Flow** - PMW3901 position estimation
-- **RC Relay** - Passes RC through to FC
+## 🔧 Configuration
+
+### Waypoints Format
+
+```
+--waypoints lat,lng,alt [lat,lng,alt]...
+```
+
+### Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--mode` | Flight mode (0-6) | 0 |
+| `--waypoints` | Mission waypoints | none |
+| `--enable-optical-flow` | Enable PMW3901 | false |
+| `--log` | Log file path | auto |
+
+---
+
+## 📦 Components
+
+```
+companion/
+├── companion/
+│   ├── __init__.py
+│   ├── main.py              # Entry point
+│   ├── comms/
+│   │   └── spi_link.py      # SPI communication
+│   ├── autopilot/
+│   │   └── autopilot.py     # Flight control
+│   └── vision/
+│       └── optical_flow.py  # Position estimation
+└── pyproject.toml
+```
+
+---
+
+## ⚙️ Requirements
+
+- Raspberry Pi Zero 2W
+- SPI enabled
+- Python 3.10+
+- SPI connection to Pico
+
+---
+
+## 📜 License
+
+MIT • Made by [btechioi](https://github.com/btechioi)
