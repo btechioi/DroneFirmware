@@ -1,6 +1,12 @@
 # Drone Companion Computer
 
-Position estimation & autopilot for Raspberry Pi Zero 2W.
+<p align="center">
+  <img src="https://img.shields.io/badge/Platform-Pi%20Zero%202W-blue" alt="Platform">
+  <img src="https://img.shields.io/badge/Link-SPI%20125MHz-green" alt="Link">
+  <img src="https://img.shields.io/badge/Python-3.12+-blueviolet?style=flat&logo=python" alt="Python">
+</p>
+
+Position estimation & autopilot for Raspberry Pi Zero 2W connected to Flight Controller via SPI.
 
 ## Flight Modes
 
@@ -33,7 +39,22 @@ python3 -m companion.main --mode 2 --enable-optical-flow
 ESP32/RC  ──── Serial ────►  Pi Zero  ──── SPI ────►  Pico
 Radio                                  │                │
 (NRF24/LoRa)                           │                ▼
-                                      │          IMU → PID → Motors
-                                      │                ▲
-                                      └──────── Telemetry
+                                        │          IMU → PID → Motors
+                                        │                ▲
+                                        └──────── Telemetry
 ```
+
+## Setup
+
+```bash
+cd companion
+uv sync
+uv run python -m companion
+```
+
+## Features
+
+- **SPI Link** - 125 MHz to flight controller
+- **Autopilot** - Position hold, waypoints, RTL
+- **Optical Flow** - PMW3901 position estimation
+- **RC Relay** - Passes RC through to FC
