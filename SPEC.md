@@ -1,26 +1,8 @@
-# DroneFlightController - Protocol Specification
+# DroneFirmware Protocol Specification
 
-## Overview
+## 1. RC → FC Serial Protocol
 
-Binary protocols for the drone system:
-1. **FC** - Raspberry Pi Pico
-2. **RC** - ESP32-C3/S3 (ESP-NOW + Serial)
-3. **Companion** - Pi Zero 2W (SPI)
-4. **GCS** - PyQt6 desktop app (Mavlink)
-
-## Connection Diagram
-
-```
-PC/GCS ──USB──► ESP32 TX ──ESP-NOW──► ESP32 RX ──Serial──► Pico FC
-                                                    │
-                                                    │ SPI
-                                                    ▼
-                                             Pi Zero 2W
-```
-
-## 1. RC → FC Serial (2 Mbps)
-
-Binary protocol, 8N1.
+**Baud**: 2 Mbps, 8N1
 
 ### RC Channels Packet (0xAA 0x01)
 ```
@@ -30,7 +12,7 @@ Offset  Size  Description
 1       1     Type: 0x01
 2       1     Channel count (N)
 3       2N    Channel values (1000-2000, little-endian)
-3+2N    2     CRC16
+3+2N   2     CRC16
 ```
 
 ### FC Telemetry Packet (0x55 0x02)
@@ -39,11 +21,13 @@ Offset  Size  Description
 ------  ----  -----------
 0       1     Sync: 0x55
 1       1     Type: 0x02
-2       1     Flags (armed, failsafe)
-3       6     Attitude (roll, pitch, yaw × int16)
-9       4     Altitude (int32, cm)
-13      6     Gyro rates
-19      2     Battery (mV)
+2       1     Seq number
+3       1     Flags (bit 0: armed, bit 1: companion)
+4       1     Control source
+5       6     Attitude (roll, pitch, yaw × int16, ÷100 for rad)
+11      4     Altitude (int32, cm)
+15      6     Gyro rates (×3 int16)
+21      2     Battery voltage (mV)
 ```
 
 ### RC Status Packet (0x66 0x03)
@@ -67,47 +51,42 @@ Offset  Size  Description
 26      1     Error flags
 ```
 
-## 2. FC ↔ Companion SPI (125 MHz)
+## 2. ESP-NOW Protocol
 
-```
-┌────────┬──────┬────────┬────────┬────────┐
-│  CMD   │ LEN  │  DATA  │  DATA  │  CRC   │
-│  1B   │  2B  │ N bytes │  ...   │  1B   │
-└────────┴──────┴────────┴────────┴────────┘
-```
-
-| Command | Description |
-|---------|-------------|
-| 0x01 | PING |
-| 0x02 | RC Channels |
-| 0x03 | Telemetry |
-| 0x04 | Settings |
-
-## 3. RC ↔ TX ESP-NOW
-
-### RC Data Packet
+### RC Data Packet (TX → RX)
 ```cpp
 struct ESPNOWPacket {
     uint8_t magic;           // 0xAA
-    uint8_t type;            // 0x01
-    uint32_t timestamp;       // μs
-    uint8_t channelCount;
-    uint16_t channels[16];   // 1000-2000
+    uint8_t type;             // 0x01
+    uint32_t timestamp;       // μs since boot
+    uint8_t channelCount;    // 4-16
+    uint16_t channels[16];    // 1000-2000
     int8_t rssi;
     uint8_t flags;
 };
 ```
 
+## 3. SPI Protocol (FC ↔ Companion)
+
+**Speed**: 125 MHz
+
+| Command | Description |
+|---------|-------------|
+| 0x01 | PING/PONG |
+| 0x02 | RC Channels |
+| 0x03 | Telemetry |
+| 0x04 | Settings |
+
 ## 4. Mavlink (GCS ↔ FC)
 
-Standard messages + custom PID tuning (ID 200-204).
+### Custom Messages
 
-| ID | Name | Direction |
-|----|------|-----------|
-| 200 | PID_TUNE_CMD | GCS → FC |
-| 201 | PID_TUNE_STATUS | FC → GCS |
-| 202 | PID_TUNE_RESULT | FC → GCS |
-| 203 | PID_GAINS | ↔ |
+| ID | Name | Direction | Payload |
+|----|------|-----------|---------|
+| 200 | PID_TUNE_CMD | GCS → FC | cmd, method, axis, amplitude |
+| 201 | PID_TUNE_STATUS | FC → GCS | state, progress |
+| 202 | PID_TUNE_RESULT | FC → GCS | kp, ki, kd |
+| 203 | PID_GAINS | ↔ | axis, kp, ki, kd |
 
 ### PID Tuning Methods
 | Value | Method |
@@ -117,31 +96,75 @@ Standard messages + custom PID tuning (ID 200-204).
 | 2 | STEP_RESPONSE |
 | 3 | FREQUENCY_SWEEP |
 
-## 5. RC Channel Mapping
+## 5. Enums
 
-| Channel | Input | Range |
-|---------|-------|-------|
-| 1 | Roll | 1000-2000 |
-| 2 | Pitch | 1000-2000 |
-| 3 | Throttle | 1000-2000 |
-| 4 | Yaw | 1000-2000 |
-| 5 | Aux1 | 1000/2000 (Arm) |
-| 6 | Aux2 | Mode |
+### FlightMode (src/main/flight_mode.h)
+```cpp
+enum class FlightMode {
+    MANUAL = 0,
+    ALTHOLD = 1,
+    POSHOLD = 2,
+    WAYPOINT = 3,
+    RTL = 4,
+    TAKEOFF = 5,
+    LAND = 6
+};
+```
 
-## 6. Failsafe States
+### FailSafeState
+```cpp
+enum class FailSafeState {
+    NONE = 0,
+    SIGNAL_LOSS = 1,
+    LOW_BATTERY = 2,
+    CRITICAL_SENSOR = 3
+};
+```
 
-| State | Trigger | Action |
-|-------|---------|--------|
-| SIGNAL_LOSS | No RC 500ms | Hover at throttle |
-| LOW_BATTERY | <20% | Land |
-| CRITICAL_SENSOR | IMU fail | Disarm |
+### ControlSource
+```cpp
+enum class ControlSource {
+    RC_RECEIVER = 0,
+    COMPANION = 1,
+    FAILSAFE = 2
+};
+```
 
-## 7. Data Types
+## 6. RC Channel Mapping
 
-| Type | Size |
-|------|------|
-| uint8_t | 1 byte |
-| uint16_t | 2 bytes |
-| uint32_t | 4 bytes |
-| int16_t | 2 bytes |
-| float | 4 bytes |
+| Channel | Function | Range |
+|---------|----------|-------|
+| 0 | Roll | 1000-2000 |
+| 1 | Pitch | 1000-2000 |
+| 2 | Throttle | 1000-2000 |
+| 3 | Yaw | 1000-2000 |
+| 4 | Aux1 (Arm) | 1000/2000 |
+| 5 | Aux2 (Mode) | 1000/2000 |
+
+## 7. Failsafe Triggers
+
+| Trigger | Timeout | Action |
+|---------|---------|--------|
+| RC Signal Loss | 500ms | Hover at throttle 1200 |
+| Stuck Controls | 3s | Reset to neutral |
+| Companion Timeout | 2s | Return to RC |
+| IMU Failure | - | Disarm immediately |
+
+## 8. Constants
+
+```cpp
+// Loop rates
+FAST_LOOP_HZ = 400
+FAST_LOOP_US = 2500
+
+// RC
+RC_SIGNAL_TIMEOUT_MS = 500
+STUCK_CONTROL_TIMEOUT_MS = 3000
+
+// Companion
+COMPANION_HEARTBEAT_TIMEOUT_MS = 2000
+PING_INTERVAL_MS = 500
+
+// RC channels
+STUCK_CONTROL_THRESHOLD = 20
+```
