@@ -1,32 +1,52 @@
 #include "pid.h"
-#include "globals.h"
 
-#define DERIVATIVE_FILTER_ALPHA 0.7 // Alpha for EMA filter (0.0 to 1.0, higher is more smoothing)
+#define DERIVATIVE_FILTER_ALPHA 0.7f
 
-float computePID(PID* pid, float error) {
-  unsigned long currentTime = millis();
-  float deltaTime = (currentTime - pid->lastComputeTime) / 1000.0; // Convert to seconds
-  if (deltaTime == 0) deltaTime = 0.001; // Avoid division by zero
+PID::PID(float kp, float ki, float kd, float outputLimit)
+    : kp(kp), ki(ki), kd(kd), outputLimit_(outputLimit) {}
 
-  // Proportional term
-  float proportional = pid->kp * error;
+void PID::setGains(float kp, float ki, float kd) {
+    this->kp = kp;
+    this->ki = ki;
+    this->kd = kd;
+}
 
-  // Integral term: sum of errors over time
-  pid->integral += error * deltaTime; // Accumulate error over time
-  // Constrain integral to prevent wind-up.
-  pid->integral = constrain(pid->integral, -pid->outputLimit, pid->outputLimit);
+void PID::setOutputLimit(float limit) {
+    outputLimit_ = limit;
+}
 
-  // Derivative term: rate of change of error
-  float rawDerivative = (error - pid->prevError) / deltaTime;
-  // Apply EMA filter to derivative to reduce noise
-  float derivative = (DERIVATIVE_FILTER_ALPHA * rawDerivative) + ((1.0 - DERIVATIVE_FILTER_ALPHA) * pid->prevDerivative);
-  pid->prevDerivative = derivative; // Store filtered derivative for next iteration
+float PID::compute(float target, float measured) {
+    return compute(target - measured);
+}
 
-  pid->prevError = error; // Store current error for next iteration's derivative
-  pid->lastComputeTime = currentTime; // Update last compute time
+float PID::compute(float error) {
+    unsigned long now = millis();
+    float dt = (now - lastComputeTime_) / 1000.0f;
+    if (dt <= 0) dt = 0.001f;
+    
+    float p = kp * error;
+    
+    integral_ += error * dt;
+    integral_ = constrain(integral_, -outputLimit_, outputLimit_);
+    
+    float derivative = 0;
+    if (dt > 0) {
+        float rawDerivative = (error - prevError_) / dt;
+        derivative = (DERIVATIVE_FILTER_ALPHA * rawDerivative) + 
+                     ((1.0f - DERIVATIVE_FILTER_ALPHA) * prevDerivative_);
+        prevDerivative_ = derivative;
+    }
+    
+    prevError_ = error;
+    lastComputeTime_ = now;
+    
+    float output = p + (ki * integral_) + (kd * derivative);
+    return constrain(output, -outputLimit_, outputLimit_);
+}
 
-  // Combine terms for final PID output
-  float output = proportional + (pid->ki * pid->integral) + (pid->kd * derivative);
-  pid->lastOutput = constrain(output, -pid->outputLimit, pid->outputLimit); // Store constrained output
-  return pid->lastOutput;
+void PID::reset() {
+    prevError_ = 0;
+    integral_ = 0;
+    prevDerivative_ = 0;
+    lastComputeTime_ = 0;
 }

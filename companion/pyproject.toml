@@ -1,0 +1,14 @@
+[project]
+name = "drone-companion"
+version = "1.0.0"
+description = "Flight Companion Computer for Raspberry Pi Zero 2W"
+requires-python = ">=3.9"
+dependencies = [
+    "spidev>=3.5",
+    "pygame-ce>=2.3.0",
+    "numpy>=1.24.0",
+    "opencv-python>=4.8.0",
+]
+
+[project.scripts]
+drone-companion = "companion.main:main"
