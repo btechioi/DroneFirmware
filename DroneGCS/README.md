@@ -1,176 +1,63 @@
-# DroneGCS - Ground Control Station
-
 <p align="center">
-  <img src="https://img.shields.io/badge/Framework-PyQt6-41CD52?style=for-the-badge&logo=qt" alt="Framework">
-  <img src="https://img.shields.io/badge/Protocol-Mavlink-659AD2?style=for-the-badge" alt="Protocol">
-  <img src="https://img.shields.io/badge/Python-3.10+-blueviolet?style=for-the-badge&logo=python" alt="Python">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:9933ff,100:6600cc&height=180&section=header&text=DroneGCS&fontSize=50&fontAlignY=35&animation=fadeIn&fontColor=ffffff"/>
 </p>
 
----
+<p align="center">
+  <img src="https://img.shields.io/badge/PyQt6-41CD52?style=for-the-badge&logo=qt" alt="PyQt6">
+  <img src="https://img.shields.io/badge/Mavlink-659AD2?style=for-the-badge" alt="Mavlink">
+</p>
 
-## 🎯 Features
+Desktop ground control station for flying and tuning the drone.
 
-| ✨ Feature | 📝 Description |
-|------------|----------------|
-| 🎮 **Joystick** | Gamepad/controller support |
-| ⌨️ **Keyboard** | WASD + QE controls |
-| 📊 **Real-time** | PID tuning graphs |
-| 🔍 **Auto-detect** | Finds drone USB devices |
-| 🎛️ **PID Tuner** | Multiple auto-tune methods |
-
----
-
-## 🕹️ Controls
-
-```
-┌─────────────────────────────────────────────────────┐
-│                 KEYBOARD CONTROLS                     │
-├─────────────────────────────────────────────────────┤
-│                                                      │
-│              ┌─────────────────┐                     │
-│              │   W             │  ← Pitch Forward   │
-│              ├─────────────────┤                     │
-│         ┌────┤   S             │                    │
-│         │ A  ├─────────────────┤  D ──► Roll       │
-│         │    │                 │                    │
-│   Yaw ◄─┤    └─────────────────┘                   │
-│         │                                              │
-│         │        ┌─────────────────┐                 │
-│         │        │   SPACE         │  ← Throttle Up  │
-│         └───────┤   CTRL          │  ← Throttle Down│
-│                 └─────────────────┘                 │
-│                                                      │
-├─────────────────────────────────────────────────────┤
-│   R ──► ARM    │    ESC ──► DISARM    │    T ──► Tune │
-└─────────────────────────────────────────────────────┘
-```
-
-### Joystick Mapping
-
-| Axis/Button | Action |
-|-------------|--------|
-| Left Stick X | Roll |
-| Left Stick Y | Pitch |
-| Right Stick X | Yaw |
-| Right Stick Y | Throttle |
-| Button A | Arm |
-| Button B | Disarm |
-| Button X | Mode Cycle |
-
----
-
-## 🔗 Connection Modes
-
-```
-┌─────────────────────────────────────────────────────┐
-│              CONNECTION OPTIONS                     │
-├─────────────────────────────────────────────────────┤
-│                                                      │
-│  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
-│  │ USB SERIAL   │  │    UDP       │  │   RELAY    │ │
-│  │              │  │              │  │            │ │
-│  │  /dev/tty   │  │  14550       │  │ Via RC     │ │
-│  │  USB0       │  │  192.168.x   │  │ Module     │ │
-│  │              │  │              │  │            │ │
-│  └──────────────┘  └──────────────┘  └────────────┘ │
-│                                                      │
-└─────────────────────────────────────────────────────┘
-```
-
-| Mode | Port | Use Case |
-|------|------|----------|
-| **USB Serial** | /dev/ttyUSB0 | Direct cable |
-| **UDP** | 14550 | Network |
-| **Relay** | Via RC | Wireless |
-
----
-
-## 🎛️ PID Tuning Methods
-
-```
-┌─────────────────────────────────────────────────────┐
-│              AUTO-TUNE METHODS                       │
-└─────────────────────────────────────────────────────┘
-
- ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
- │   ZIEGLER   │  │   RELAY     │  │    STEP     │  │  FREQUENCY  │
- │  NICHOLS    │  │ (Åström)    │  │  RESPONSE   │  │   SWEEP     │
- │             │  │             │  │             │  │             │
- │  Ultimate   │  │  Relay      │  │  First-     │  │  Bode       │
- │   Gain      │  │ Feedback    │  │  Order      │  │  Plot       │
- │             │  │             │  │             │  │             │
- │  🌀🌀🌀      │  │  📈📉📈📉   │  │   ╱╲       │  │  ∿∿∿∿∿∿   │
- │  Oscillation│  │  On/Off     │  │  ╱──╲      │  │  Frequency  │
- └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘
-```
-
----
-
-## 🖥️ UI Tabs
-
-```
-┌─────────────────────────────────────────────────────┐
-│  DroneGCS                                             │
-├────────┬────────┬────────┬────────┬─────────────────┤
-│ Flight │  PID   │ Motor  │Sensors │ Messages         │
-│ Control│ Tuning │ Test   │        │                  │
-├────────┴────────┴────────┴────────┴─────────────────┤
-│                                                      │
-│   ┌──────────────────┐  ┌──────────────────┐          │
-│   │   ATTITUDE       │  │   TELEMETRY      │          │
-│   │                  │  │                   │          │
-│   │      ●          │  │  Alt: 10.5m      │          │
-│   │    ●   ●        │  │  Bat: 11.8V      │          │
-│   │      ●          │  │  RSSI: -45dB     │          │
-│   │                  │  │                   │          │
-│   │  R: 0.0°        │  │                   │          │
-│   │  P: 0.0°        │  │                   │          │
-│   │  Y: 0.0°        │  │                   │          │
-│   └──────────────────┘  └──────────────────┘          │
-│                                                      │
-└─────────────────────────────────────────────────────┘
-```
-
-| Tab | Features |
-|-----|----------|
-| **Flight** | Mode, arm/disarm, throttle |
-| **PID** | Auto-tune, profile slots |
-| **Motor** | Individual motor test |
-| **Sensors** | IMU, barometer values |
-| **Messages** | Mavlink log |
-
----
-
-## 🚀 Quick Start
+## Install
 
 ```bash
-# Install dependencies
 cd DroneGCS
 uv sync
+```
 
-# Run GCS
+## Run
+
+```bash
 uv run python -m drone_gcs
 ```
 
----
+## Controls
 
-## 📦 Requirements
+| Key | Action |
+|-----|--------|
+| WASD | Roll/Pitch |
+| Q/E | Yaw |
+| Space/Ctrl | Throttle |
+| R | Arm |
+| Esc | Disarm |
 
-```
-┌─────────────────────────────────┐
-│         DEPENDENCIES            │
-├─────────────────────────────────┤
-│  🐍 Python     3.10+          │
-│  🖼️ PyQt6      UI Framework   │
-│  📡 pymavlink  Mavlink proto   │
-│  🔌 pyserial   Serial comms    │
-│  📊 numpy      Data processing│
-│  📈 pyqtgraph  Real-time plots │
-└─────────────────────────────────┘
-```
+Gamepad supported if you prefer.
 
----
+## Connect
 
-## 📜 License
+| Mode | How |
+|------|-----|
+| USB | Direct cable to FC |
+| UDP | Network to drone IP |
+| Relay | Through RC module |
 
-MIT • Made by [btechioi](https://github.com/btechioi)
+The app auto-detects "DroneFlightController" USB devices.
+
+## PID Tuning
+
+Built-in auto-tuner supports:
+- Ziegler-Nichols
+- Relay feedback (Åström-Hägglund)
+- Step response
+- Frequency sweep
+
+Four profile slots to save different tuning sets.
+
+## Tabs
+
+- **Flight** - Basic arm/disarm, mode select
+- **PID** - Auto-tune, manual adjustment
+- **Motor** - Test individual motors
+- **Sensors** - View IMU/baro data
+- **Messages** - Mavlink traffic log

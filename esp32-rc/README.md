@@ -1,226 +1,77 @@
-# ESP32 RC Transmitter/Receiver
-
 <p align="center">
-  <a href="#">
-    <img src="https://img.shields.io/badge/Chip-ESP32--C3/S3-E7352C?style=for-the-badge" alt="Chip">
-  </a>
-  <a href="#">
-    <img src="https://img.shields.io/badge/Wireless-ESP--NOW-003366?style=for-the-badge" alt="Wireless">
-  </a>
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:ff6b35,100:ff0000&height=180&section=header&text=ESP32%20RC%20Module&fontSize=45&fontAlignY=35&animation=fadeIn&fontColor=ffffff"/>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Channels-16-FC4C02?style=flat" alt="16 Channels">
-  <img src="https://img.shields.io/badge/Protocol-SBUS%20%7C%20CRSF-00979D?style=flat&logo=arduino" alt="Protocols">
-  <img src="https://img.shields.io/badge/Audio-Cues-9933FF?style=flat" alt="Audio">
+  <img src="https://img.shields.io/badge/ESP32-C3/S3-CC0000?style=for-the-badge" alt="Chip">
+  <img src="https://img.shields.io/badge/ESP--NOW-003366?style=for-the-badge" alt="Wireless">
 </p>
 
----
+Wireless RC module for drones. Handles the link between your transmitter and the flight controller.
 
-## 🎯 Features
+## Modes
 
-| ✨ Feature | 📝 Description |
-|------------|----------------|
-| 🔗 **Auto-Pairing** | No manual configuration |
-| 🔀 **Multi-Protocol** | SBUS, CRSF, Serial |
-| 📊 **16 Channels** | Full RC channel support |
-| 📡 **Telemetry** | Status to PC and FC |
-| 🔊 **Audio Cues** | Connection feedback |
-| ⚡ **Low Power** | Efficient ESP32-C3 |
+**RECEIVER** (default) - sits on the drone
+- Listens for ESP-NOW transmissions
+- Outputs SBUS, CRSF, or serial to FC
+- Sends telemetry back to transmitter
 
----
+**TRANSMITTER** - handheld controller
+- Takes RC input from PC via USB
+- Broadcasts over ESP-NOW
 
-## 🔄 Modes
+**BRIDGE** - direct passthrough
+- Passes PC ↔ FC without wireless
 
-### RECEIVER (Default) 🛸
-
-```
-    ┌─────────────────────────────────────────────┐
-    │                   RECEIVER                   │
-    │                                              │
-    │   ◄─────────── ESP-NOW ────────────►        │
-    │   │             │                           │
-    │   │    ┌────────┴────────┐                  │
-    │   │    │                 │                  │
-    │   │    ▼                 ▼                  │
-    │   │  [SBUS]    [CRSF]    [Serial]          │
-    │   │    │         │          │               │
-    │   │    └─────────┼──────────┘               │
-    │   │              ▼                          │
-    │   │    ═══════════════════════               │
-    │   │         To Flight Controller             │
-    └─────────────────────────────────────────────┘
-```
-
-### TRANSMITTER 📱
-
-```
-    ┌──────────────────────────────┐
-    │        TRANSMITTER           │
-    │                              │
-    │   ════════════════          │
-    │          │ From PC          │
-    │          ▼                   │
-    │   ┌──────────────┐           │
-    │   │   Serial RX  │           │
-    │   └──────┬───────┘           │
-    │          │                    │
-    │          ▼                    │
-    │   ════════════════════════    │
-    │       ESP-NOW Broadcast       │
-    │   ════════════════════════    │
-    └──────────────────────────────┘
-              │
-              │ ESP-NOW
-              ▼
-         [RECEIVER]
-```
-
-### BRIDGE 🌉
-
-```
-    PC ◄═══ USB ═══► [BRIDGE] ════ Serial ═══► FC
-```
-
----
-
-## 📌 Pinout
+## Wiring
 
 ### ESP32-C3
 
-```
-    ┌─────────────────────────┐
-    │        ESP32-C3         │
-    │                         │
-    │    [LED]   [BTN]       │
-    │      ●       ○         │
-    │                        │
-    │   GPIO 8    GPIO 9     │
-    │                        │
-    │  ┌──┬──┬──┬──┬──┬──┐  │
-    │  │  │  │  │  │  │  │  │
-    │  │TX│RX│  │  │  │  │  │
-    │  │ 4│ 5│  │  │  │  │  │
-    │  └──┴──┴──┴──┴──┴──┘  │
-    │                        │
-    │  ┌──┬──┬──┬──┬──┬──┐  │
-    │  │  │  │  │  │  │  │  │
-    │  │A0│A1│A2│A3│S1│S2│  │
-    │  │ 0│ 1│ 2│ 3│ 4│ 5│  │
-    │  └──┴──┴──┴──┴──┴──┘  │
-    │                        │
-    └─────────────────────────┘
-```
-
-| Function | GPIO | Notes |
-|----------|------|-------|
-| 🔴 LED | 8 | Status LED |
-| 🔘 Button | 9 | Boot button |
-| 📤 UART TX | 4 | To FC |
-| 📥 UART RX | 5 | From FC |
-| 🎮 ADC 0-3 | 0-3 | Joysticks |
-| 🔀 Switch A-D | 4-7 | Aux switches |
+| GPIO | Function |
+|------|----------|
+| 4 | UART TX to FC |
+| 5 | UART RX from FC |
+| 8 | Status LED |
+| 0-3 | ADC inputs |
 
 ### ESP32-S3
 
-| Function | GPIO | Notes |
-|----------|------|-------|
-| 🔴 LED | 48 | Status LED |
-| 📤 UART TX | 17 | To FC |
-| 📥 UART RX | 18 | From FC |
-| 🎮 ADC 1-4 | 1-4 | Joysticks |
+| GPIO | Function |
+|------|----------|
+| 17 | UART TX to FC |
+| 18 | UART RX from FC |
+| 48 | Status LED |
 
----
-
-## 📡 Protocols
-
-| Protocol | Speed | Format | Use |
-|----------|-------|--------|-----|
-| 🔢 **Serial** | 2 Mbps | Binary | High speed |
-| 📻 **SBUS** | 100 Kbps | 8E2 | Futaba |
-| 🚀 **CRSF** | 420 Kbps | ELRS | ExpressLRS |
-
----
-
-## 🔵 Connection States
-
-```
-    ┌────────────────────────────────────────────┐
-    │           CONNECTION FLOW                   │
-    └────────────────────────────────────────────┘
-    
-    DISCONNECTED          💤
-         │
-         ▼
-    ┌─────────┐    No peer    ┌───────────┐
-    │SEARCHING│◄─────────────►│RECONNECTING│
-    │ 🔵 ●    │               │  🟠 ●     │
-    │         │   + peer      │            │
-    └────┬────┘               └─────┬──────┘
-         │                            │
-         │    ESP-NOW linked          │
-         ▼                            ▼
-    ┌─────────┐               ┌───────────┐
-    │ PAIRING │─────────────►│ CONNECTED │
-    │ 🟢 ●●   │               │  🟢 ●●●  │
-    └─────────┘               └───────────┘
-```
-
-| State | LED | Signal |
-|-------|-----|--------|
-| 💤 DISCONNECTED | ⬛ Off | No peer |
-| 🔍 SEARCHING | 🔵 Slow blink | Scanning |
-| 🔗 PAIRING | 🟢 Fast blink | Linking |
-| ✅ CONNECTED | 🟢 Solid | Active |
-| 🔄 RECONNECTING | 🟠 Slow blink | Retrying |
-
----
-
-## 🔊 Audio Feedback
-
-| Event | Sound | Pattern |
-|-------|-------|---------|
-| 🔍 Searching | beep-beep | ● ─ ● ─ |
-| ✅ Connected | 3 beeps | ● ● ● |
-| ❌ Lost | sad tone | ● ─ ● ─ ● |
-| ✅ Reconnected | 2 beeps | ● ● |
-
----
-
-## 🛠️ Building
+## Build
 
 ```bash
-# Build receiver
+# Receiver
 pio run -d esp32-rc -e esp32c3-rc
 
-# Build transmitter
+# Transmitter  
 pio run -d esp32-rc -e esp32c3-tx
-
-# Upload
-pio run -d esp32-rc -e esp32c3-rc --target upload \
-    --upload-port /dev/ttyUSB0
 ```
 
----
+## Flash
 
-## 📊 Memory
-
-```
-    ┌─────────────────────────────────┐
-    │         MEMORY USAGE            │
-    ├─────────────────────────────────┤
-    │                                 │
-    │  RAM   ████████░░░░░░  11.6%  │
-    │         ~38 KB / 320 KB         │
-    │                                 │
-    │  FLASH ██████████████░  21.9%  │
-    │         ~730 KB / 8 MB          │
-    │                                 │
-    └─────────────────────────────────┘
+```bash
+esptool.py --chip esp32c3 --port /dev/ttyUSB0 write_flash 0x0 firmware/rc_receiver_esp32c3.bin
 ```
 
----
+## Auto-Pairing
 
-## 📜 License
+The module scans for any ESP-NOW broadcaster on startup. No MAC address or channel configuration needed. Once paired, it reconnects automatically if the link drops.
 
-MIT • Made by [btechioi](https://github.com/btechioi)
+## Status LED
+
+| State | LED |
+|-------|-----|
+| Off | No peer found |
+| Slow blink | Searching |
+| Fast blink | Pairing |
+| Solid | Connected |
+
+## Memory
+
+- RAM: ~38 KB
+- Flash: ~730 KB

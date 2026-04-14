@@ -1,4 +1,6 @@
-# DroneFlightController
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:00e1ff,100:0055ff&height=200&section=header&text=DroneFlightController&fontSize=50&fontAlignY=35&animation=fadeIn&fontColor=ffffff"/>
+</p>
 
 <p align="center">
   <a href="#">
@@ -12,216 +14,113 @@
   </a>
 </p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Platform-Raspberry%20Pi%20Pico-CC0000?style=for-the-badge&logo=raspberrypi" alt="Platform">
-  <img src="https://img.shields.io/badge/MCU-ESP32--C3-E7352C?style=for-the-badge" alt="MCU">
-  <img src="https://img.shields.io/badge/Framework-Arduino-00979D?style=for-the-badge&logo=arduino" alt="Framework">
-</p>
+A drone flight controller that runs on Raspberry Pi Pico, with ESP-NOW RC, companion computer support, and a desktop ground station.
 
----
+## Hardware
 
-## 🚁 Overview
+- **FC**: Raspberry Pi Pico + MPU6050 IMU
+- **RC**: ESP32-C3 or ESP32-S3 (auto-pairing via ESP-NOW)
+- **Optional**: GPS, barometer, optical flow
+- **Companion**: Raspberry Pi Zero 2W
 
-```
-     ╭──────────────────────────────────────╮
-     │           DRONE SYSTEM               │
-     │  ┌─────────────────────────────┐     │
-     │  │  🚀 Flight Controller       │     │
-     │  │  ┌─────────────────────┐    │     │
-     │  │  │    ██  ██  ██  ██  │    │     │
-     │  │  │    M0  M1  M2  M3  │    │     │
-     │  │  └─────────────────────┘    │     │
-     │  │         │                   │     │
-     │  │    ══════════════           │     │
-     │  │         │ IMU               │     │
-     │  └─────────┼───────────────────┘     │
-     │            │                          │
-     │  ┌─────────┴───────────────────┐     │
-     │  │  📡 RC System               │     │
-     │  │  ESP-NOW ◄──────► Transmit  │     │
-     │  └─────────────────────────────┘     │
-     ╰──────────────────────────────────────╯
-```
-
-A modular drone flight control system with **ESP-NOW RC**, **companion computer support**, and **Ground Control Station**.
-
----
-
-## ✨ Features
-
-| Feature | Description |
-|---------|-------------|
-| 🔌 **Standalone FC** | Raspberry Pi Pico flies without companion |
-| 📡 **Wireless RC** | ESP-NOW auto-pairing, no manual config |
-| 🔌 **Hot-Plug** | GPS, barometer, optical flow auto-detected |
-| 🔊 **Audio** | Motor buzzer for failsafe cues |
-| 🎛️ **PID Tuner** | Multiple methods built-in |
-| 🖥️ **GCS** | PyQt6 app with joystick/keyboard |
-
----
-
-## 🚀 Quick Start
+## Build
 
 ```bash
-# Clone and build
-git clone https://github.com/btechioi/DroneFirmware.git
-cd DroneFirmware
 ./build.sh
+```
 
-# Flash Pico
-cp firmware/firmware.uf2 /media/$USER/RPI-RP2/
+This creates `firmware/` with:
+- `firmware.uf2` - Flash to Pico
+- `rc_receiver_esp32c3.bin` - ESP32-C3 receiver
+- `rc_receiver_esp32s3.bin` - ESP32-S3 receiver
+- `rc_transmitter_esp32c3.bin` - ESP32-C3 transmitter
+- `rc_transmitter_esp32s3.bin` - ESP32-S3 transmitter
 
-# Flash ESP32
+## Flash
+
+**Pico**: Copy `firmware.uf2` to the Pico USB drive (hold BOOTSEL to mount)
+
+**ESP32**:
+```bash
 esptool.py --chip esp32c3 --port /dev/ttyUSB0 write_flash 0x0 firmware/rc_receiver_esp32c3.bin
 ```
 
----
-
-## 🏗️ Architecture
+## How It Works
 
 ```
-                        ┌─────────────────┐
-                        │   Ground Station │
-                        │     DroneGCS     │
-                        │  🎮 Joystick     │
-                        └────────┬────────┘
-                                 │ USB/UDP
-                    ┌────────────┴────────────┐
-                    │                         │
-              ╔═════╧═════╗             ╔═════╧═════╗
-              ║ TRANSMITTER║             ║ RECEIVER  ║
-              ║  (Handheld)║◄──ESP-NOW──►║ (On Drone)║
-              ╚═════╤═════╝             ╚═════╤═════╝
-                    │                         │
-                    │ USB                      │ Serial 2Mbps
-                    ▼                         ▼
-              ┌───────────┐            ╔═══════════════════╗
-              │   PC/GCS  │            ║ Flight Controller  ║
-              └───────────┘            ║  Raspberry Pico    ║
-                                       ╠═══════════════════╣
-                                       ║  IMU │ Motors    ║
-                                       ║  GPS │ Baro     ║
-                                       ╚══════╧═══════════╝
-                                                 │
-                                            SPI │ 125MHz
-                                                 ▼
-                                       ╔═══════════════════╗
-                                       ║   Companion       ║
-                                       ║   Pi Zero 2W      ║
-                                       ║  Autopilot/Vision ║
-                                       ╚═══════════════════╝
+                    ┌─────────────┐
+                    │   GCS/PC    │
+                    │  (PyQt6)    │
+                    └──────┬──────┘
+                           │ USB
+                    ┌──────┴──────┐
+                    │             │
+              ┌─────┴─────┐ ┌─────┴─────┐
+              │ Transmitter│ │  Receiver │
+              │ (optional) │ │           │
+              └─────┬─────┘ └─────┬─────┘
+                    │ ESP-NOW    │
+                    └─────┬───────┘
+                          │ Serial
+                    ┌─────┴─────┐
+                    │   Pico FC   │
+                    └─────┬─────┘
+                          │ SPI
+                    ┌─────┴─────┐
+                    │ Pi Zero 2W │
+                    │ (optional) │
+                    └───────────┘
 ```
 
----
+The Pico flies standalone. The ESP32 RC module receives control signals via ESP-NOW and sends them to the FC over serial. The Pi Zero can take over control via SPI.
 
-## 📦 Hardware
+## Features
 
-| Component | Model | Status |
-|-----------|-------|--------|
-| 🖥️ Flight Controller | Raspberry Pi Pico | ✅ Required |
-| ⚙️ IMU | MPU6050 | ✅ Required |
-| 📡 RC Receiver | ESP32-C3/S3 | ✅ Required |
-| 🎮 RC Transmitter | ESP32-C3/S3 | ⚙️ Optional |
-| 🛰️ GPS | u-blox NEO-M8N | ⭕ Optional |
-| 🌡️ Barometer | BMP280 | ⭕ Optional |
-| 🤖 Companion | Pi Zero 2W | ⭕ Optional |
+| Feature | Notes |
+|---------|-------|
+| 400Hz control loop | Fast response |
+| Auto-tuning PIDs | Relay, Ziegler-Nichols, etc |
+| Hot-plug sensors | GPS/baro auto-detected |
+| Motor audio cues | Beeps for status/failsafe |
+| Triple-redundant RC | Direct, ESP-NOW, companion |
 
----
+## RC System
 
-## 📁 Firmware Output
+The RC module runs in one of three modes:
 
-```
-firmware/
-├── firmware.uf2                 ████████████  Pico FC
-├── rc_receiver_esp32c3.bin      ██████████    ESP32-C3
-├── rc_receiver_esp32s3.bin      ██████████    ESP32-S3
-├── rc_transmitter_esp32c3.bin   ██████████    ESP32-C3 TX
-└── rc_transmitter_esp32s3.bin  ██████████    ESP32-S3 TX
-```
+| Mode | Description |
+|------|-------------|
+| RECEIVER | Picks up ESP-NOW, outputs SBUS/CRSF/Serial |
+| TRANSMITTER | Takes input from PC USB, broadcasts ESP-NOW |
+| BRIDGE | Passes PC ↔ FC directly |
 
----
+Auto-pairs with any ESP-NOW peer on startup.
 
-## 📻 RC Modes
+## Audio
 
-| Mode | Flow | Use Case |
-|------|------|----------|
-| **RECEIVER** | ESP-NOW → SBUS/Serial → FC | Drone-side RC |
-| **TRANSMITTER** | PC USB → ESP-NOW → Receiver | Handheld/PC |
-| **BRIDGE** | PC ↔ FC passthrough | Direct control |
+The motors act as buzzers for audio feedback:
 
----
+- Short beep on arm/disarm
+- Rising tone when paired
+- Descending tone when signal lost
+- All-motors siren when you need to find the drone
 
-## 🔊 Audio Cues
+## GCS
 
-```
-┌─────────────────────────────────────────────────────┐
-│  🎵 Audio Feedback System                           │
-├─────────────────────────────────────────────────────┤
-│                                                     │
-│   🚀 Ready     ▸ ● ─ ●  System startup            │
-│   ✅ Armed      ▸ ● ● ●  Motors armed               │
-│   ⏹️ Disarmed   ▸ ● ● ─  Motors stopped             │
-│   📡 RC Lost    ▸ ● ─ ● ─  Signal lost             │
-│   📡 RC Found   ▸ ● ● ●    Signal restored          │
-│   🔍 Searching  ▸ ● ─ ● ─  Looking for RC          │
-│   📍 Find Drone ▸ ♪♪♪♪♪♪  LOUD SIREN (all motors) │
-│                                                     │
-└─────────────────────────────────────────────────────┘
+Python PyQt6 app for ground control:
+
+```bash
+cd DroneGCS && uv sync && uv run python -m drone_gcs
 ```
 
----
+Features joystick support, keyboard fallback (WASD + QE), real-time PID graphs.
 
-## ⚡ Performance
+## Safety
 
-| Loop | Rate | Budget |
-|------|------|--------|
-| 🏃 Fast Loop | **400 Hz** | <2.5ms |
-| 🎯 Attitude | **200 Hz** | <5ms |
-| 📍 Position | **50 Hz** | <20ms |
+- Remove props before testing firmware
+- Verify RC link before arming
+- Failsafe kicks in after 500ms without signal
 
----
+## License
 
-## ⚠️ Safety
-
-> ```diff
-> - WARNING: Remove props before firmware testing
-> - WARNING: Verify RC link before arming  
-> - WARNING: Test failsafes in safe environment
-> ```
-
----
-
-## 📚 Project Structure
-
-```
-DroneFirmware/
-├── 📄 README.md              # This file
-├── 🔧 build.sh               # Build script
-├── ⚙️  platformio.ini         # FC config
-├── 📁 firmware/               # Built binaries
-├── 📁 src/                    # Flight controller
-│   ├── main/
-│   └── systems/
-│       ├── control/
-│       ├── comms/
-│       └── sensors/
-├── 📁 esp32-rc/              # RC firmware
-│   └── src/main.cpp
-├── 📁 companion/              # Pi Zero code
-│   └── companion/
-├── 📁 DroneGCS/              # Ground station
-│   └── drone_gcs/
-└── 📄 SPEC.md                # Protocol specs
-```
-
----
-
-## 📜 License
-
-<div align="center">
-
-MIT License
-
-Made with ❤️ by [btechioi](https://github.com/btechioi)
-
-</div>
+MIT
